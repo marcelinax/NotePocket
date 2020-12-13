@@ -1,7 +1,7 @@
-function findById(l,id){
+function findById(l, id) {
   let found = null;
-  l.forEach(element =>{
-    if(element.attributes && element.attributes[1].value == id){
+  l.forEach((element) => {
+    if (element.attributes && element.attributes[1].value == id) {
       found = element;
     }
   });
@@ -13,7 +13,7 @@ class DB {
     this.notes = []; // tablica notatek zczytywana z localStorage
     this.counter = 0; // numer notatki
   }
- 
+
   // pobranie numeru notatki
 
   getCounter() {
@@ -36,7 +36,14 @@ class DB {
     localStorage.setItem(`note${note.id}`, JSON.stringify(note));
     return note;
   }
-  
+
+  toggleNotePin(noteId) {
+    const note = JSON.parse(localStorage.getItem(`note${noteId}`));
+    note.pinned = !note.pinned;
+    localStorage.setItem(`note${noteId}`, JSON.stringify(note));
+    this.readFromLocalStorage();
+  }
+
   // zczytywanie numeru ostatnio dodanej notatki w localStorage
 
   actualNumberOfNote() {
@@ -48,38 +55,11 @@ class DB {
   // zczytywanie i dodawanie każdej notatki po kolei do tablicy z localStorage
 
   readFromLocalStorage() {
-    // this.notes = [];
+    this.notes = [];
     for (let i = 0; i < localStorage.length - 1; i++) {
       this.notes.push(JSON.parse(localStorage.getItem(`note${i}`)));
     }
-    console.log(this.notes);
   }
-
-
-  changeLocalStorage(){
-    const notes = this.getAllNotes();
-    localStorage.clear();
-    this.counter = -1;
-    for(let i =0 ; i< notes.length; i++){
-      const note = JSON.parse(notes[i]);
-      localStorage.setItem(`note${this.getCounter()}`,JSON.stringify(note));
-      this.getAnIncrementCounter();
-    }
-    window.location.reload()
-  }
-  changeLocalStorage(){
-    const notes = this.getAllNotes();
-    localStorage.clear();
-    this.counter = -1;
-    for(let i =0 ; i< notes.length; i++){
-      const note = JSON.parse(notes[i]);
-      localStorage.setItem(`note${this.getCounter()}`,JSON.stringify(note));
-      this.getAnIncrementCounter();
-    }
-    // window.location.reload()
-  }
-
-
 
   // zwracanie tablicy notatek
 
@@ -98,18 +78,24 @@ class Notes {
   // utworzenie nowej notatki
 
   createNote(noteTitle, noteContent, noteDate) {
-    const colour = this.getCurrentColour()
+    const colour = this.getCurrentColour();
     const note = {
       title: noteTitle,
       content: noteContent,
       date: noteDate,
       color: colour,
+      pinned: false,
     };
     return this.baza.addNoteToLocalStorage(note); // dodanie notatki do localStorage
   }
- 
-  getCurrentColour(){
-    const colours = document.querySelectorAll('.oneColourBox');
+
+  toggleNotePin(noteId) {
+    this.notes = this.baza.getAllNotes(); // przypiasnie tablicy notatek zwracanej z klasy DB
+    this.baza.toggleNotePin(noteId);
+  }
+
+  getCurrentColour() {
+    const colours = document.querySelectorAll(".oneColourBox");
     const form = [
       {
         className: "default_purple--active",
@@ -131,21 +117,20 @@ class Notes {
     let targetClassName = "";
     let targetColour;
 
-    for(let i = 0; i <colours.length;i++){
-      if(colours[i].classList.length == 3){
+    for (let i = 0; i < colours.length; i++) {
+      if (colours[i].classList.length == 3) {
         targetClassName = colours[i].classList[2];
       }
     }
-    form.map(value=>{
-      if(value.className == targetClassName){
-        console.log(value.colourName);
+    form.map((value) => {
+      if (value.className == targetClassName) {
         targetColour = value.colourName;
         return value.colourName;
       }
     });
-     return targetColour;
+    return targetColour;
   }
-  changeColourOfNote(){
+  changeColourOfNote() {
     let current = 0;
     const currentClass = [
       "default_purple--active",
@@ -153,10 +138,10 @@ class Notes {
       "lightPink--active",
       "darkOrange--active",
     ];
-    const colourBtn = document.querySelectorAll('.oneColourBox');
-    
-    for(let i = 0; i < colourBtn.length; i++){
-      colourBtn[i].addEventListener('click', ()=>{
+    const colourBtn = document.querySelectorAll(".oneColourBox");
+
+    for (let i = 0; i < colourBtn.length; i++) {
+      colourBtn[i].addEventListener("click", () => {
         colourBtn[current].classList.remove(currentClass[current]);
         current = i;
         colourBtn[i].classList.add(currentClass[i]);
@@ -164,14 +149,19 @@ class Notes {
     }
   }
 
-  deleteNote(){
-    return this.baza.changeLocalStorage()
+  deleteNote() {
+    return this.baza.changeLocalStorage();
   }
-  
+
   // zwrócenie tablicy notatek
 
   getNotes() {
     return this.notes;
+  }
+
+  refreshNotes() {
+    this.baza = new DB(); // utworzenie instancji klasy DB
+    this.notes = this.baza.getAllNotes(); // przypiasnie tablicy notatek zwracanej z klasy DB
   }
 }
 
@@ -180,8 +170,7 @@ class Visual {
     this.notes = new Notes(); // utworzenie instancji klasy Notes
     this.notesArray = this.notes.getNotes(); // przypisanie tablicy notatek z klasy Notes
     this.board = document.querySelector(".otherNotesBox");
-    this.boardWithPinnedNotes = document.querySelector('.pinnedNotesBox');
-
+    this.boardWithPinnedNotes = document.querySelector(".pinnedNotesBox");
   }
 
   // utworzenie notatki po uzupełnieniu pól formularza
@@ -198,6 +187,7 @@ class Visual {
           new Date().toLocaleString()
         );
         this.createNote(note);
+        location.reload();
       } else alert("Wypełnij pola!");
     });
   }
@@ -208,7 +198,7 @@ class Visual {
     const singleNote = document.createElement("div");
     singleNote.classList.add("otherNote");
     singleNote.dataset.id = element.id;
-    singleNote.classList.add(`${element.color}`)
+    singleNote.classList.add(`${element.color}`);
 
     let obj = `
     <p class = "singleNote_date">${element.date}</p>
@@ -227,7 +217,10 @@ class Visual {
   // wrzucanie utworzonych divów z notatkami do jednego boxa
 
   createNoteBoard() {
-    const notes = this.notesArray;
+    this.boardWithPinnedNotes.innerHTML = "";
+    this.board.innerHTML = "";
+
+    const notes = this.notes.getNotes();
     for (let i = 0; i < notes.length; i++) {
       this.createNote(notes[i]);
     }
@@ -236,84 +229,32 @@ class Visual {
   // wyświetlenie notatki na stronie
 
   createNote(note) {
-    this.board.appendChild(this.createNoteBox(note));
+    if (note.pinned) {
+      this.boardWithPinnedNotes.appendChild(this.createNoteBox(note));
+    } else {
+      this.board.appendChild(this.createNoteBox(note));
+    }
   }
 
   // usuwanie notatki po jej id
 
-  // deleteNote() {
-  //   const deleteBtn = document.querySelectorAll(
-  //     ".singleNote_options_deleteNote"
-  //   );
-  //   for (let i = 0; i < deleteBtn.length; i++) {
-  //     deleteBtn[i].addEventListener("click", () => {
-        
-  //       if(deleteBtn[i].attributes[1].value== this.notesArray[i].id){
-  //       localStorage.removeItem(`note${this.notesArray[deleteBtn[i].attributes[1].value]}`);
-  //       this.notes.deleteNote();
-  //       }
-  //     });
-  //   }
-  // }
-  // deleteNote() {
-  //   const deleteBtn = document.querySelectorAll(
-  //     ".singleNote_options_deleteNote"
-  //   );
-  //   for (let i = 0; i < deleteBtn.length; i++) {
-  //     deleteBtn[i].addEventListener("click", () => {
-  //       const d = deleteBtn[i].attributes[1].value;
-  //       console.log(this.notesArray[i].id == d)
-  //       if(this.notesArray[i].id == d){
-  //         localStorage.removeItem(`note${this.notesArray[i].id}`);
-  //       }
-  //       return this.notesArray
-  //      console.log(this.notesArray) 
-  //     });
-  //   }
-  // }
-  
-  deleteNote() {
-    const deleteBtn = document.querySelectorAll(
-      ".singleNote_options_deleteNote"
-    );
-    for (let i = 0; i < deleteBtn.length; i++) {
-      deleteBtn[i].addEventListener("click", () => {
-        const d = deleteBtn[i].attributes[1].value;
-        console.log(this.notesArray[i].id == d)
-        if(this.notesArray[i].id == d){
-          localStorage.removeItem(`note${this.notesArray[i].id}`);
-        }
-       console.log(this.notesArray) 
-      });
-    }
-  }
-    pinNote(){
-      const pinBtn = document.querySelectorAll('.singleNote_options_pinNote');
-      for(let i = 0 ; i < pinBtn.length ; i++ ){
-       pinBtn[i].addEventListener('click', () =>{
+  pinNote() {
+    const pinBtn = document.querySelectorAll(".singleNote_options_pinNote");
+    for (let i = 0; i < pinBtn.length; i++) {
+      pinBtn[i].addEventListener("click", () => {
         const pin = pinBtn[i].attributes[1].value;
-
-        let note = findById(this.board.childNodes, pin);
-        if(note){
-          this.boardWithPinnedNotes.appendChild(note);
-        }
-       
-        // console.dir(pin)
-        // this.boardWithPinnedNotes.appendChild((this.board).childNodes[pin])
-        // console.log(this.boardWithPinnedNotes.appendChild((this.board).childNodes[pin]))
-      })  
+        this.notes.toggleNotePin(pin);
+        location.reload();
+      });
     }
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const b = new DB();
-  const v = new Visual();
-  v.addNewNote();
-  v.createNoteBoard();
-  
-  v.pinNote()
- const n = new Notes()
- n.changeColourOfNote()
- v.deleteNote()
-});
+const b = new DB();
+const v = new Visual();
+v.addNewNote();
+v.createNoteBoard();
+
+v.pinNote();
+const n = new Notes();
+n.changeColourOfNote();
