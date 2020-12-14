@@ -29,6 +29,12 @@ class DB {
     return counter;
   }
 
+  decrementCounter() {
+    let counter = this.actualNumberOfNote();
+    localStorage.setItem("notesCount", counter - 1);
+    return counter;
+  }
+
   // dodawanie notatki do localStorage za pośrednictwem id notatki
 
   addNoteToLocalStorage(note) {
@@ -41,6 +47,17 @@ class DB {
     const note = JSON.parse(localStorage.getItem(`note${noteId}`));
     note.pinned = !note.pinned;
     localStorage.setItem(`note${noteId}`, JSON.stringify(note));
+    this.readFromLocalStorage();
+  }
+
+  deleteNote(noteId) {
+    const lastNote = JSON.parse(
+      localStorage.getItem(`note${this.actualNumberOfNote() - 1}`)
+    );
+    lastNote.id = noteId;
+    localStorage.setItem(`note${noteId}`, JSON.stringify(lastNote));
+    localStorage.removeItem(`note${this.actualNumberOfNote() - 1}`);
+    this.decrementCounter();
     this.readFromLocalStorage();
   }
 
@@ -149,8 +166,8 @@ class Notes {
     }
   }
 
-  deleteNote() {
-    return this.baza.changeLocalStorage();
+  deleteNote(noteId) {
+    return this.baza.deleteNote(noteId);
   }
 
   // zwrócenie tablicy notatek
@@ -238,6 +255,18 @@ class Visual {
 
   // usuwanie notatki po jej id
 
+  initDeleteNote() {
+    const deleteBtn = document.querySelectorAll(
+      ".singleNote_options_deleteNote"
+    );
+    for (let i = 0; i < deleteBtn.length; i++) {
+      deleteBtn[i].addEventListener("click", () => {
+        this.notes.deleteNote(i);
+        location.reload();
+      });
+    }
+  }
+
   pinNote() {
     const pinBtn = document.querySelectorAll(".singleNote_options_pinNote");
     for (let i = 0; i < pinBtn.length; i++) {
@@ -256,5 +285,6 @@ v.addNewNote();
 v.createNoteBoard();
 
 v.pinNote();
+v.initDeleteNote();
 const n = new Notes();
 n.changeColourOfNote();
