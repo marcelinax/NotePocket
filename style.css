@@ -74,6 +74,9 @@ h5 {
   width: 76px;
   margin: auto 20px;
 }
+.oneColourBox.selected {
+  box-shadow: 2px 2px 10px white;
+}
 .oneColourBox:hover,
 .addButton:hover {
   transform: scale(0.9);
@@ -207,11 +210,9 @@ h3 {
   width: 8px;
   /* border: 1px solid #444054; */
   border-radius: 10px;
-  background-color:  #4440547c;
+  background-color: #4440547c;
 }
-::-webkit-scrollbar-thumb{
+::-webkit-scrollbar-thumb {
   background-color: #444054;
-  border-radius :20px;
-  
+  border-radius: 20px;
 }
-
